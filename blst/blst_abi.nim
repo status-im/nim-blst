@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------------------------
 # Manual edits
-import strutils, os
+import std/[strutils, os]
 
 const headerPath = currentSourcePath.rsplit(DirSep, 1)[0]/".."/"vendor"/"blst"/"bindings"/"blst.h"
 
