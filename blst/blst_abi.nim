@@ -7,6 +7,9 @@ const headerPath = currentSourcePath.rsplit(DirSep, 1)[0]/".."/"vendor"/"blst"/"
 {.pragma: blst, importc, header: headerPath.}
 
 type CTbool* = distinct cint
+type HashOrEncode* {.size: sizeof(cint).} = enum
+  kEncode = 0
+  kHash = 1
 
 # Copyright Supranational LLC
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
@@ -262,6 +265,35 @@ proc blst_sk_to_pk_in_g2*(out_pk: var blst_p2; SK: blst_scalar)
 proc blst_sign_pk_in_g2*(out_sig: var blst_p1; hash: blst_p1; SK: blst_scalar)
 
 # Pairing interface
+#
+#  Usage pattern on single-processor system is
+#
+#  blst_pairing_init(ctx);
+#  blst_pairing_aggregate_pk_in_g1(ctx, PK1, aggregated_signature, message1);
+#  blst_pairing_aggregate_pk_in_g1(ctx, PK2, NULL, message2);
+#  ...
+#  blst_pairing_commit(ctx);
+#  blst_pairing_finalverify(ctx, NULL);
+#
+# **********************************************************************
+#  Usage pattern on multi-processor system is
+#
+#    blst_pairing_init(pk0);
+#    blst_pairing_init(pk1);
+#    ...
+#  start threads each processing a slice of PKs and messages:
+#      blst_pairing_aggregate_pk_in_g1(pkx, PK[], NULL, message[]);
+#      blst_pairing_commit(pkx);
+#    ...
+#    blst_fp12 gtsig;
+#    blst_aggregated_in_g2(&gtsig, aggregated_signature);
+#  join threads and merge their contexts:
+#    blst_pairing_merge(pk0, pk1);
+#    blst_pairing_merge(pk0, pk2);
+#    ...
+#    blst_pairing_finalverify(pk0, gtsig);
+#
+
 proc blst_miller_loop*(ret: var blst_fp12; Q: blst_p2_affine; P: blst_p1_affine)
 proc blst_final_exp*(ret: var blst_fp12; f: blst_fp12)
 proc blst_precompute_lines*(Qlines: var array[68, blst_fp6]; Q: blst_p2_affine)
@@ -270,27 +302,27 @@ proc blst_pairing_sizeof*(): uint
 proc blst_pairing_init*(new_ctx: var blst_pairing)
 proc blst_pairing_commit*(ctx: var blst_pairing)
 proc blst_pairing_aggregate_pk_in_g2*[T,U,V: byte|char](
-                                     ctx: var blst_pairing; PK: blst_p2_affine;
-                                     signature: blst_p1_affine;
-                                     hash_or_encode: CTBool;
+                                     ctx: var blst_pairing; PK: ptr blst_p2_affine;
+                                     signature: ptr blst_p1_affine;
+                                     hash_or_encode: HashOrEncode;
                                      msg: openArray[T];
                                      domainSepTag: openArray[U];
                                      aug: openArray[V]): BLST_ERROR
 proc blst_pairing_mul_n_aggregate_pk_in_g2*(ctx: var blst_pairing;
-    PK: blst_p2_affine; sig: blst_p1_affine; hash: blst_p1_affine;
+    PK: ptr blst_p2_affine; sig: ptr blst_p1_affine; hash: blst_p1_affine;
     scalar: limb_t; nbits: uint): BLST_ERROR
 proc blst_pairing_aggregate_pk_in_g1*[T,U,V: byte|char](
-                                     ctx: var blst_pairing; PK: blst_p1_affine;
-                                     signature: blst_p2_affine;
-                                     hash_or_encode: CTBool;
+                                     ctx: var blst_pairing; PK: ptr blst_p1_affine;
+                                     signature: ptr blst_p2_affine;
+                                     hash_or_encode: HashOrEncode;
                                      msg: openArray[T];
                                      domainSepTag: openArray[U];
                                      aug: openArray[V]): BLST_ERROR
 proc blst_pairing_mul_n_aggregate_pk_in_g1*(ctx: var blst_pairing;
-    PK: blst_p1_affine; sig: blst_p2_affine; hash: blst_p2_affine;
+    PK: ptr blst_p1_affine; sig: ptr blst_p2_affine; hash: blst_p2_affine;
     scalar: limb_t; nbits: uint): BLST_ERROR
 proc blst_pairing_merge*(ctx: var blst_pairing; ctx1: blst_pairing): BLST_ERROR
-proc blst_pairing_finalverify*(ctx: var blst_pairing; gtsig: blst_fp12): CTBool
+proc blst_pairing_finalverify*(ctx: var blst_pairing; gtsig: ptr blst_fp12): CTBool
 
 #   Customarily applications aggregate signatures separately.
 #    In which case application would have to pass NULLs for |signature|
@@ -305,12 +337,14 @@ proc blst_aggregated_in_g2*(dst: var blst_fp12; signature: blst_p2_affine)
 
 #   "One-shot" CoreVerify entry points.
 proc blst_core_verify_pk_in_g1*[T,U,V: byte|char](pk: blst_p1_affine;
-                               signature: blst_p2_affine; hash_or_encode: CTBool;
+                               signature: blst_p2_affine;
+                               hash_or_encode: HashOrEncode;
                                msg: openArray[T];
                                domainSepTag: openArray[U];
                                aug: openArray[V]): BLST_ERROR
 proc blst_core_verify_pk_in_g2*[T,U,V: byte|char](pk: blst_p2_affine;
-                               signature: blst_p1_affine; hash_or_encode: CTBool;
+                               signature: blst_p1_affine;
+                               hash_or_encode: HashOrEncode;
                                msg: openArray[T];
                                domainSepTag: openArray[U];
                                aug: openArray[V]): BLST_ERROR
