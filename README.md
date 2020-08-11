@@ -1,14 +1,9 @@
 # blst
 
-[![Build Status (Travis)](https://img.shields.io/travis/status-im/nim-blst/master.svg?label=Linux%20/%20macOS "Linux/macOS build status (Travis)")](https://travis-ci.org/status-im/nim-blst)
-[![Windows build status (Appveyor)](https://img.shields.io/appveyor/ci/nimbus/nim-blst/master.svg?label=Windows "Windows build status (Appveyor)")](https://ci.appveyor.com/project/nimbus/nim-blst)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![License: Apache](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-![Stability: experimental](https://img.shields.io/badge/stability-experimental-orange.svg)
+This is a proof-of-concept wrapper of SupraNational BLST library https://github.com/supranational/blst
+The wrapper is being integrated directly in our BLSCurve as an optimized alternative BLS backend https://github.com/status-im/nim-blscurve
 
-## Introduction
-
-Quick description
+As such this wrapper is unmaintained.
 
 ## Installation
 
